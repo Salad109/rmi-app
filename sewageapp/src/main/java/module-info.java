@@ -1,0 +1,3 @@
+module sewageapp {
+    requires sewagelib;
+}
