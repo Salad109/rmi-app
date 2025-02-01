@@ -14,28 +14,49 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Office implements IOffice {
-    private static int idgen = 1;
     private Map<Integer, ITanker> tankers = new HashMap<>();
+    private Map<Integer, ITanker> busyTankers = new HashMap<>();
     private JTextArea textArea;
     private JTextArea tankersListTextArea;
+    private JTextArea busyTankersListTextArea;
 
     @Override
     public int register(ITanker t, String name) throws RemoteException {
-        int id = idgen++;
+        int id = t.hashCode();
         tankers.put(id, t);
         logMessage("Registered tanker " + id + " named " + name);
-        t.setJob(null);
         updateTankersList(); // Update the tankers list whenever a new tanker is registered
         return id;
     }
 
     @Override
     public int order(IHouse house, String name) throws RemoteException {
-        return 0;
+        if (tankers.isEmpty()) {
+            logMessage("No tankers available to serve house " + name);
+            return 0;
+        } else {
+            ITanker tanker = tankers.values().iterator().next();
+            tankers.remove(tanker.hashCode());
+            busyTankers.put(tanker.hashCode(), tanker);
+            tanker.setJob(house);
+            logMessage("Ordered tanker " + tanker.hashCode() + " to serve house " + name);
+            updateTankersList(); // Update the tankers list whenever a tanker is ordered
+            updateBusyTankersList(); // Update the busy tankers list whenever a tanker is ordered
+            return tanker.hashCode();
+        }
     }
 
     @Override
     public void setReadyToServe(int number) throws RemoteException {
+        ITanker tanker = busyTankers.remove(number);
+        if (tanker != null) {
+            tankers.put(number, tanker);
+            logMessage("Tanker " + number + " is now ready to serve again.");
+            updateTankersList(); // Update the tankers list whenever a tanker is ready to serve
+            updateBusyTankersList(); // Update the busy tankers list whenever a tanker is ready to serve
+        } else {
+            logMessage("Tanker " + number + " not found in busy tankers.");
+        }
     }
 
     private void updateTankersList() {
@@ -45,25 +66,49 @@ public class Office implements IOffice {
         });
     }
 
+    private void updateBusyTankersList() {
+        SwingUtilities.invokeLater(() -> {
+            busyTankersListTextArea.setText(""); // Clear existing text
+            busyTankers.forEach((id, tanker) -> busyTankersListTextArea.append("Busy Tanker ID: " + id + "\n"));
+        });
+    }
+
     private void createAndShowGUI() {
         JFrame frame = new JFrame("Office");
 
-        textArea = new JTextArea(10, 30);
+        textArea = new JTextArea(10, 20);
         textArea.setEditable(false);
         JScrollPane scrollPane = new JScrollPane(textArea);
 
-        tankersListTextArea = new JTextArea(10, 30);
+        tankersListTextArea = new JTextArea(10, 20);
         tankersListTextArea.setEditable(false);
         JScrollPane tankersScrollPane = new JScrollPane(tankersListTextArea);
 
-        JPanel panel = new JPanel(new GridLayout(1, 2));
-        panel.add(scrollPane);
-        panel.add(tankersScrollPane);
+        busyTankersListTextArea = new JTextArea(10, 20);
+        busyTankersListTextArea.setEditable(false);
+        JScrollPane busyTankersScrollPane = new JScrollPane(busyTankersListTextArea);
+
+        JPanel logPanel = new JPanel(new BorderLayout());
+        logPanel.add(new JLabel("Log"), BorderLayout.NORTH);
+        logPanel.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel tankersPanel = new JPanel(new BorderLayout());
+        tankersPanel.add(new JLabel("Available Tankers"), BorderLayout.NORTH);
+        tankersPanel.add(tankersScrollPane, BorderLayout.CENTER);
+
+        JPanel busyTankersPanel = new JPanel(new BorderLayout());
+        busyTankersPanel.add(new JLabel("Busy Tankers"), BorderLayout.NORTH);
+        busyTankersPanel.add(busyTankersScrollPane, BorderLayout.CENTER);
+
+        JPanel panel = new JPanel(new GridLayout(1, 3));
+        panel.add(logPanel);
+        panel.add(tankersPanel);
+        panel.add(busyTankersPanel);
 
         frame.setLayout(new BorderLayout());
         frame.add(panel, BorderLayout.CENTER);
 
-        frame.setSize(800, 300); // Adjusted size to accommodate both text areas
+        frame.setSize(1200, 300); // Adjusted size to accommodate all text areas
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setAlwaysOnTop(true);
         frame.setVisible(true);

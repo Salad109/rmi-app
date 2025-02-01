@@ -22,7 +22,12 @@ public class House extends UnicastRemoteObject implements IHouse {
 
     @Override
     public int getPumpOut(int max) throws RemoteException {
-        return 0;
+        int sewage = getSewage();
+        int amountToPumpOut = Math.min(sewage, max);
+        sewageCounter.addAndGet(-amountToPumpOut);
+        SwingUtilities.invokeLater(() -> sewageCounterLabel.setText(getSewageCounterText()));
+        logMessage("Pumped out " + amountToPumpOut + " sewage");
+        return amountToPumpOut;
     }
 
     public static void main(String[] args) {
@@ -30,13 +35,17 @@ public class House extends UnicastRemoteObject implements IHouse {
             House house = new House();
             house.createAndShowGUI();
             house.startSewageIncrementer();
+
+            IHouse io = (IHouse) UnicastRemoteObject.exportObject(house, 0);
+            Registry registry = LocateRegistry.getRegistry("localhost", 2000);
+            registry.rebind("House", io);
         } catch (RemoteException e) {
             throw new RuntimeException(e);
         }
     }
 
     private void createAndShowGUI() {
-        JFrame frame = new JFrame("House");
+        JFrame frame = new JFrame("House " + this.hashCode());
 
         sewageCounterLabel = new JLabel(getSewageCounterText());
         textArea = new JTextArea(10, 30);
@@ -76,9 +85,9 @@ public class House extends UnicastRemoteObject implements IHouse {
             logMessage("Order sent");
 
             if (orderStatus == 0) {
-                logMessage("Order denied");
+                logMessage("Order denied. No tankers available.");
             } else {
-                logMessage("Order accepted");
+                logMessage("Order accepted. A tanker is on the way.");
             }
         } catch (RemoteException | NotBoundException e) {
             throw new RuntimeException(e);
