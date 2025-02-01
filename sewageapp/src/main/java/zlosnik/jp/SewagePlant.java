@@ -1,4 +1,4 @@
-package implementations;
+package zlosnik.jp;
 
 import interfaces.ISewagePlant;
 

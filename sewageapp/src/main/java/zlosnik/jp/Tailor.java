@@ -1,4 +1,4 @@
-package implementations;
+package zlosnik.jp;
 
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
