@@ -26,22 +26,8 @@ public class House extends UnicastRemoteObject implements IHouse {
         int amountToPumpOut = Math.min(sewage, max);
         sewageCounter.addAndGet(-amountToPumpOut);
         SwingUtilities.invokeLater(() -> sewageCounterLabel.setText(getSewageCounterText()));
-        logMessage("Pumped out " + amountToPumpOut + " sewage");
+        logMessage("Pumped out " + amountToPumpOut + " sewage.");
         return amountToPumpOut;
-    }
-
-    public static void main(String[] args) {
-        try {
-            House house = new House();
-            house.createAndShowGUI();
-            house.startSewageIncrementer();
-
-            IHouse io = (IHouse) UnicastRemoteObject.exportObject(house, 0);
-            Registry registry = LocateRegistry.getRegistry("localhost", 2000);
-            registry.rebind("House", io);
-        } catch (RemoteException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private void createAndShowGUI() {
@@ -110,5 +96,18 @@ public class House extends UnicastRemoteObject implements IHouse {
 
     private void logMessage(String message) {
         SwingUtilities.invokeLater(() -> textArea.append(message + "\n"));
+    }
+
+    public static void main(String[] args) {
+        try {
+            House house = new House();
+            house.createAndShowGUI();
+            house.startSewageIncrementer();
+            Registry registry = LocateRegistry.getRegistry("localhost", 2000);
+            registry.rebind("House", house);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Failed to connect to the RMI registry: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
