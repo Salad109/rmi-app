@@ -1,4 +1,4 @@
 module sewageapp {
-    requires sewagelib;
     requires java.desktop;
+    requires sewagelib;
 }
